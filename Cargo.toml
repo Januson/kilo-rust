@@ -7,3 +7,4 @@ authors = ["Ondřej Januš <janusonx@gmail.com>"]
 name = "kilo-rust"
 
 [dependencies]
+libc = "0.2.21"
