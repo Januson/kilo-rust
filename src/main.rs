@@ -2,10 +2,16 @@ extern crate libc;
 
 use std::io::Read;
 use std::char::from_u32;
-use libc::*;
+use libc::c_uint;
+use libc::c_int;
+use libc::c_uchar;
+use libc::STDIN_FILENO;
+use libc::TCSAFLUSH;
+use libc::ECHO;
 
 fn main() {
-    let mut t = enable_raw_mode();
+    let mut editor = Editor::new();
+    editor.enable_raw_mode();
     let mut input = std::io::stdin()
         .bytes();
 
@@ -20,16 +26,38 @@ fn main() {
         }
         println!("You wrote letter: {}", from_u32(i).unwrap());
     }
-    t.echo_on();
+    editor.disable_raw_mode();
 }
 
-fn enable_raw_mode() -> Termios {
-    let mut t = Termios::new();
-    t.echo_off();
-    t
+struct Editor {
+    termios: Termios,
+    orig_termios: Termios,
+}
+
+impl Editor {
+    fn new() -> Editor {
+        let termios = Termios::new();
+        Editor {
+            orig_termios: termios.clone(),
+            termios: termios,
+        }
+    }
+
+    fn enable_raw_mode(&mut self) {
+        self.termios.echo_off();
+    }
+
+    fn disable_raw_mode(&self) {
+        unsafe {
+            if tcsetattr(STDIN_FILENO, TCSAFLUSH, &self.orig_termios) == -1 {
+                panic!("Could not call tcsetattr");
+            }
+        }
+    }
 }
 
 #[repr(C)]
+#[derive(Clone)]
 struct Termios {
     c_iflag: c_uint,
     c_oflag: c_uint,
@@ -63,7 +91,7 @@ impl Termios {
     }
 
     /// Turn echo off
-    pub fn echo_off(&mut self) -> () {
+    pub fn echo_off(&mut self) {
         self.c_lflag &= !ECHO;
         unsafe {
             if tcsetattr(STDIN_FILENO, TCSAFLUSH, self) == -1 {
@@ -73,7 +101,7 @@ impl Termios {
     }
 
     /// Turn echo on
-    pub fn echo_on(&mut self) -> () {
+    pub fn echo_on(&mut self) {
         self.c_lflag |= ECHO;
         unsafe {
             if tcsetattr(STDIN_FILENO, TCSAFLUSH, self) == -1 {
