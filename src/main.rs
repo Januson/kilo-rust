@@ -2,12 +2,7 @@ extern crate libc;
 
 use std::io::Read;
 use std::char::from_u32;
-use libc::c_uint;
-use libc::c_int;
-use libc::c_uchar;
-use libc::STDIN_FILENO;
-use libc::TCSAFLUSH;
-use libc::ECHO;
+use libc::*;
 
 fn main() {
     let mut editor = Editor::new();
@@ -44,7 +39,7 @@ impl Editor {
     }
 
     fn enable_raw_mode(&mut self) {
-        self.termios.echo_off();
+        self.termios.raw_on();
     }
 
     fn disable_raw_mode(&self) {
@@ -91,8 +86,8 @@ impl Termios {
     }
 
     /// Turn echo off
-    pub fn echo_off(&mut self) {
-        self.c_lflag &= !ECHO;
+    pub fn raw_on(&mut self) {
+        self.c_lflag &= !(ECHO | ICANON);
         unsafe {
             if tcsetattr(STDIN_FILENO, TCSAFLUSH, self) == -1 {
                 panic!("Could not call tcsetattr");
