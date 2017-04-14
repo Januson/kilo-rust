@@ -11,17 +11,28 @@ fn main() {
         .bytes();
 
     loop {
-        let i = input.next()
+        let b = input.next()
             .and_then(|result| result.ok())
-            .map(|byte| byte as u32)
+            //.map(|byte| byte as u32)
             .unwrap();
-        println!("{:?}", i);
-        if i == 27 {
+        println!("{:?}", b);
+        let char = from_u32(b as u32).unwrap();
+        if char == 'q' {
             break;
         }
-        println!("You wrote letter: {}", from_u32(i).unwrap());
+        if is_control(b) {
+            println!("{:?}", b);
+        } else {
+            println!("You wrote letter: {} ASCII: {}", &b, char);
+        }
     }
     editor.disable_raw_mode();
+}
+
+fn is_control(b: u8) -> bool {
+    unsafe {
+        iscntrl(b as i32) > 0
+    }
 }
 
 struct Editor {
@@ -71,8 +82,8 @@ impl Termios {
             c_oflag: 0,
             c_cflag: 0,
             c_lflag: 0,
-            c_cc: [0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0,
-                0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
+            c_cc: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             c_line: 0,
             c_ispeed: 0,
             c_ospeed: 0,
@@ -87,7 +98,7 @@ impl Termios {
 
     /// Turn echo off
     pub fn raw_on(&mut self) {
-        self.c_lflag &= !(ECHO | ICANON);
+        self.c_lflag &= !(ECHO | ICANON | ISIG);
         unsafe {
             if tcsetattr(STDIN_FILENO, TCSAFLUSH, self) == -1 {
                 panic!("Could not call tcsetattr");
