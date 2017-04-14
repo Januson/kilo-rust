@@ -15,15 +15,15 @@ fn main() {
             .and_then(|result| result.ok())
             //.map(|byte| byte as u32)
             .unwrap();
-        println!("{:?}", b);
+        println!("{:?}\r", b);
         let char = from_u32(b as u32).unwrap();
         if char == 'q' {
             break;
         }
         if is_control(b) {
-            println!("{:?}", b);
+            println!("{:?}\r", b);
         } else {
-            println!("You wrote letter: {} ASCII: {}", &b, char);
+            println!("You wrote letter: {} ASCII: {}\r", &b, char);
         }
     }
     editor.disable_raw_mode();
@@ -31,7 +31,7 @@ fn main() {
 
 fn is_control(b: u8) -> bool {
     unsafe {
-        iscntrl(b as i32) > 0
+        iscntrl(b as i32) != 0
     }
 }
 
@@ -98,7 +98,10 @@ impl Termios {
 
     /// Turn echo off
     pub fn raw_on(&mut self) {
-        self.c_lflag &= !(ECHO | ICANON | ISIG);
+        self.c_cflag |= CS8;
+        self.c_iflag &= !(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
+        self.c_lflag &= !(ECHO | ICANON | IEXTEN | ISIG);
+        self.c_oflag &= !OPOST;
         unsafe {
             if tcsetattr(STDIN_FILENO, TCSAFLUSH, self) == -1 {
                 panic!("Could not call tcsetattr");
